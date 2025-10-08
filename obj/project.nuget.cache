@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "nixR2PBr5/Y=",
+  "success": true,
+  "projectFilePath": "/home/sami/Desktop/Cracker/Cracker.csproj",
+  "expectedPackageFiles": [
+    "/home/sami/.nuget/packages/bcrypt.net-next/4.0.3/bcrypt.net-next.4.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}

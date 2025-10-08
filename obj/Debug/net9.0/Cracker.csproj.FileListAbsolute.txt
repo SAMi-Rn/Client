@@ -1,0 +1,17 @@
+/home/sami/Desktop/Cracker/bin/Debug/net9.0/Cracker
+/home/sami/Desktop/Cracker/bin/Debug/net9.0/Cracker.deps.json
+/home/sami/Desktop/Cracker/bin/Debug/net9.0/Cracker.runtimeconfig.json
+/home/sami/Desktop/Cracker/bin/Debug/net9.0/Cracker.dll
+/home/sami/Desktop/Cracker/bin/Debug/net9.0/Cracker.pdb
+/home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.GeneratedMSBuildEditorConfig.editorconfig
+/home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.AssemblyInfoInputs.cache
+/home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.AssemblyInfo.cs
+/home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.csproj.CoreCompileInputs.cache
+/home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.dll
+/home/sami/Desktop/Cracker/obj/Debug/net9.0/refint/Cracker.dll
+/home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.pdb
+/home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.genruntimeconfig.cache
+/home/sami/Desktop/Cracker/obj/Debug/net9.0/ref/Cracker.dll
+/home/sami/Desktop/Cracker/bin/Debug/net9.0/BCrypt.Net-Next.dll
+/home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.csproj.AssemblyReference.cache
+/home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.csproj.Up2Date
