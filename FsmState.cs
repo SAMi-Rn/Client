@@ -1,0 +1,17 @@
+namespace Cracker;
+
+public enum FsmState
+{
+    START,
+    CHECK_ARGUMENTS,
+    BIND_CRYPT,
+    READ_SHADOW,
+    PREPARE_ALPHABET,
+    PREPARE_THREAD_COUNTS,
+    START_TIMER,
+    RUN_CRACK,
+    STOP_TIMER,
+    NEXT_THREAD_COUNT,
+    END_PROGRAM,
+    ERROR
+}

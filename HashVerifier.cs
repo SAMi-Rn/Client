@@ -1,40 +1,27 @@
-using System;
-using System.Diagnostics;
-
 namespace Cracker;
 
-/// <summary>
-/// Verifies a candidate password against a stored Unix-style hash string.
-/// </summary>
+using System.Diagnostics;
+
 public sealed class HashVerifier
 {
-    /// <summary>
-    /// Verification strategy for the provided stored hash.
-    /// </summary>
+
     public enum HashMode
     {
         // Apache MD5 ("apr1") format: "$apr1$&lt;salt&gt;$&lt;hash&gt;".
         Apr1,
         
-        // Any crypt(3) format supported by libxcrypt (bcrypt, sha512-crypt, yescrypt, etc.).
+        // any crypt(3) format supported by libxcrypt
         Libxcrypt
     }
     
-    // stored hash string as read from the file
     private readonly string _storedHash;
-
-    // verification mode based on the stored hash prefix
+    
     private readonly HashMode _mode;
-
-    // the "setting" passed to crypt_ra
+    
     private readonly string _setting;
     
-    // For APR1 mode
     private readonly string? _apr1Salt;
     
-    /// <summary>
-    /// Build a verifier for a single stored hash string.
-    /// </summary>
     public HashVerifier(string storedHash)
     {
         _storedHash = storedHash ?? throw new ArgumentNullException(nameof(storedHash));
@@ -43,7 +30,7 @@ public sealed class HashVerifier
         {
             _mode = HashMode.Apr1;
             _setting = _storedHash;
-            _apr1Salt = ExtractApr1SaltOrNull(_storedHash);
+            _apr1Salt = ExtractApr1Salt(_storedHash);
         }
         else
         {
@@ -53,23 +40,19 @@ public sealed class HashVerifier
         }
     }
     
-
-    /// <summary>
-    /// Verify that <paramref name="candidatePassword"/> matches the stored hash passed at construction.
-    /// </summary>
     public bool Verify(string candidatePassword)
     {
         switch (_mode)
         {
             case HashMode.Apr1:
             {
-                // Need APR1 salt to reproduce hash via openssl
+                // APR1 salt to reproduce hash via openssl
                 if (string.IsNullOrEmpty(_apr1Salt))
                 {
                     return false;
                 }
 
-                if (!TryComputeApr1WithOpenSsl(candidatePassword, _apr1Salt, out string? produced))
+                if (!TryApr1WithOpenSsl(candidatePassword, _apr1Salt, out string? produced))
                 {
                     return false;
                 }
@@ -79,8 +62,8 @@ public sealed class HashVerifier
 
             case HashMode.Libxcrypt:
             {
-                // Delegate to crypt_ra via Program.CryptWrap 
-                string? produced = Program.CryptWrap(candidatePassword, _setting);
+                // delegate to crypt_ra
+                string? produced = Cracker.CryptWrap(candidatePassword, _setting);
                 if (produced is null) return false;
                 return string.Equals(produced, _storedHash, StringComparison.Ordinal);
             }
@@ -89,16 +72,10 @@ public sealed class HashVerifier
                 return false;
         }
     }
-
-    // ------------ APR1 helpers ------------
-
-    /// <summary>
-    /// Extract the APR1 salt from a string of the form "$apr1$&lt;salt&gt;$&lt;rest&gt;".
-    /// Returns null if the format is not valid.
-    /// </summary>
-    private static string? ExtractApr1SaltOrNull(string apr1Hash)
+    
+    private static string? ExtractApr1Salt(string apr1Hash)
     {
-        // Expected tokens ["apr1","<salt>","<rest>"]
+        // "apr1","<salt>","<rest>"
         var parts = apr1Hash.Split('$', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 2)
         {
@@ -112,12 +89,8 @@ public sealed class HashVerifier
         // the salt
         return parts[1]; 
     }
-
-    /// <summary>
-    /// Compute an APR1 hash using the openssl
-    /// </summary>
-    /// </remarks>
-    public static bool TryComputeApr1WithOpenSsl(string candidate, string salt, out string? resultHash, int timeoutMs = 5000)
+    
+    public static bool TryApr1WithOpenSsl(string candidate, string salt, out string? resultHash, int timeoutMs = 5000)
     {
         resultHash = null;
 
@@ -144,7 +117,6 @@ public sealed class HashVerifier
 
             // Read output
             string stdout = proc.StandardOutput.ReadToEnd().Trim();
-            string stderr = proc.StandardError.ReadToEnd().Trim();
 
             if (!proc.WaitForExit(timeoutMs))
             {
@@ -154,7 +126,7 @@ public sealed class HashVerifier
                 }
                 catch
                 {
-                     // empty
+                     // no op
                 }
                 return false;
             }

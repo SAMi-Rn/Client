@@ -15,3 +15,4 @@
 /home/sami/Desktop/Cracker/bin/Debug/net9.0/BCrypt.Net-Next.dll
 /home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.csproj.AssemblyReference.cache
 /home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.csproj.Up2Date
+/home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.sourcelink.json
