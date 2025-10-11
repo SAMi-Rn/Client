@@ -161,7 +161,6 @@ public static class Cracker
         {
             return null;
         }
-        
         return Marshal.PtrToStringAnsi(resultPtr);
     }
     
@@ -222,11 +221,10 @@ public static class Cracker
         }
     }
     
-    public static string? CrackMultiThread(string storedHash, int passwordLength, char[] alphabet, int numThreads, int blockSize = 256)
+    public static string? CrackMultiThread(string storedHash, int passwordLength, char[] alphabet, int numThreads, int blockSize = 1)
     {
         int a = alphabet.Length;
         long total = 1;
-        
         for (int i = 0; i < passwordLength; i++)
         {
             total *= a;
@@ -247,9 +245,9 @@ public static class Cracker
         return resultPassword;
     }
     
-    public static string? CrackRangeMultiThread(string storedHash, int minLen, int maxLen, char[] alphabet, int numThreads, int blockSize)
+    public static string? CrackRangeMultiThread(string storedHash, char[] alphabet, int numThreads, int blockSize)
     {
-        for (int len = minLen; len <= maxLen; ++len)
+        for (int len = 1;; ++len)
         {
             var found = CrackMultiThread(storedHash, len, alphabet, numThreads, blockSize);
             if (found != null)
@@ -257,7 +255,6 @@ public static class Cracker
                 return found;
             }
         }
-        return null;
     }
     
     public static string? GetHashForUser(string path, string username)

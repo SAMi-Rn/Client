@@ -4,19 +4,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public sealed class FSMHandler
+public sealed class FsmHandler
 {
     private readonly FsmContext ctx;
-    private FsmState currentState = FsmState.START;
+    private FsmState currentState = FsmState.CHECK_ARGUMENTS;
 
     private readonly List<(FsmState state, Func<FsmState> handler)> table;
 
-    public FSMHandler(FsmContext context)
+    public FsmHandler(FsmContext context)
     {
         ctx = context ?? throw new ArgumentNullException(nameof(context));
         table = new()
         {   
-            (FsmState.START,                 () => handleStart()),
             (FsmState.CHECK_ARGUMENTS,       () => handleCheckArguments()),
             (FsmState.BIND_CRYPT,            () => handleBindCrypt()),
             (FsmState.READ_SHADOW,           () => handleReadShadow()),
@@ -62,11 +61,6 @@ public sealed class FSMHandler
         }
         var end = table.Find(t => t.state == FsmState.END_PROGRAM).handler;
         end();
-    }
-    
-    public FsmState handleStart()
-    {
-        return FsmState.CHECK_ARGUMENTS;
     }
     
     public FsmState handleCheckArguments()
@@ -145,17 +139,11 @@ public sealed class FSMHandler
 
     public FsmState handlePrepareAlphabet()
     {
-        if (ctx.MinLen != 3 || ctx.MaxLen != 3)
-        {
-            var msg = "Password should be 3 characters long";
-            ctx.Error = new NotSupportedException(msg);
-            return FsmState.ERROR;
-        }
-        
         if (ctx.Alphabet.Length != 79)
         {
             var msg = "Alphabet should be 79 characters long";
             ctx.Error = new NotSupportedException(msg);
+            return FsmState.ERROR;
         }
         return FsmState.PREPARE_THREAD_COUNTS;
     }
@@ -194,7 +182,7 @@ public sealed class FSMHandler
         try
         {
             var found = Cracker.CrackRangeMultiThread(
-                ctx.StoredHash!, ctx.MinLen, ctx.MaxLen, ctx.Alphabet,
+                ctx.StoredHash!, ctx.Alphabet,
                 ctx.CurrentThreads, ctx.BlockSize);
 
             // Seconds get filled after STOP_TIMER
@@ -276,23 +264,33 @@ public sealed class FSMHandler
         // sort by threads
         var rows = ctx.Results.OrderBy(r => r.Threads).ToList();
 
-        // Table
-        var headers = new[] { "threads", "found", "time(s)" };
+        // baseline from the first row's time
+        double baseline = rows[0].Seconds > 0 ? rows[0].Seconds : 1.0;
+        
+        var headers = new[] { "threads", "found", "time(s)", "speed(x)" };
         var data = rows.Select(r => new[]
         {
             r.Threads.ToString(),
             r.Found,
             r.Seconds.ToString("0.000"),
+            (baseline / (r.Seconds > 0 ? r.Seconds : 1.0)).ToString("0.00") + "×",
         }).ToList();
-        
+    
         Console.WriteLine();
         PrintTable(headers, data);
-        
+    
         Console.WriteLine();
         PrintBarChart("\t\t  Time vs Threads",
-                      rows.Select(r => r.Threads.ToString()).ToList(),
-                      rows.Select(r => r.Seconds).ToList(),
-                      "s");
+            rows.Select(r => r.Threads.ToString()).ToList(),
+            rows.Select(r => r.Seconds).ToList(),
+            "s");
+        
+        var speed = rows.Select(r => baseline / (r.Seconds > 0 ? r.Seconds : 1.0)).ToList();
+        Console.WriteLine();
+        PrintBarChart("\t\t Speed vs Threads",
+            rows.Select(r => r.Threads.ToString()).ToList(),
+            speed,
+            "×");
     }
 
     private static void PrintTable(string[] headers, List<string[]> rows)

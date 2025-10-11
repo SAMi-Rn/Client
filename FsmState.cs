@@ -2,7 +2,6 @@ namespace Cracker;
 
 public enum FsmState
 {
-    START,
     CHECK_ARGUMENTS,
     BIND_CRYPT,
     READ_SHADOW,

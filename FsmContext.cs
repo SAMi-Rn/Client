@@ -22,9 +22,7 @@ public sealed class FsmContext
     
     public string? StoredHash { get; set; }
     
-    public int MinLen { get; set; } = 3;
-    public int MaxLen { get; set; } = 3;
-    public int BlockSize { get; set; } = 1024;
+    public int BlockSize { get; set; } = 1;
     public char[] Alphabet { get; set; } =
         ("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
          "abcdefghijklmnopqrstuvwxyz" +

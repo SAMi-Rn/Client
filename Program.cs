@@ -14,7 +14,7 @@ class Program
         ctx.Verbose = args.Any(a => a.Equals("-v", StringComparison.OrdinalIgnoreCase) ||
                                     a.Equals("--verbose", StringComparison.OrdinalIgnoreCase));
         
-        var fsm = new FSMHandler(ctx);
+        var fsm = new FsmHandler(ctx);
         fsm.IterateFSMStates();
     }
 }
