@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Cracker")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d9298ec169cae8decb152acbd5cefddd3d415196")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9b737ec8b9505720646d78fa4a0bb6e3000d1d3c")]
 [assembly: System.Reflection.AssemblyProductAttribute("Cracker")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Cracker")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
