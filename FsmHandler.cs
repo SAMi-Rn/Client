@@ -298,7 +298,9 @@ public sealed class FsmHandler
         catch (Exception ex)
         {
             if (ctx.Verbose)
+            {
                 Console.WriteLine($"[warn] Failed to save ScottPlot charts: {ex.Message}");
+            }
         }
     }
 
@@ -369,7 +371,7 @@ public sealed class FsmHandler
         }
     }
     
-    private static void SaveScottPlotCharts(List<FsmRow> rows)
+    private void SaveScottPlotCharts(List<FsmRow> rows)
     {
         if (rows == null || rows.Count == 0)
         {
@@ -395,7 +397,10 @@ public sealed class FsmHandler
         plt2.YLabel("Speed (×)");
         plt2.AddScatter(xs, ysSpeed, markerSize: 5);
         plt2.SaveFig("speed_vs_threads.png");
-
-        Console.WriteLine("[info] Saved charts: time_vs_threads.png, speed_vs_threads.png");
+        
+        if (ctx.Verbose)
+        {
+            Console.WriteLine("\n[info] Saved charts: time_vs_threads.png, speed_vs_threads.png");
+        }
     }
 }
