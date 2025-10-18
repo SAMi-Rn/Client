@@ -1,4 +1,3 @@
-// HashVerifier.cs
 namespace Cracker;
 
 using System;
