@@ -16,3 +16,9 @@
 /home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.csproj.AssemblyReference.cache
 /home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.csproj.Up2Date
 /home/sami/Desktop/Cracker/obj/Debug/net9.0/Cracker.sourcelink.json
+/home/sami/Desktop/Cracker/bin/Debug/net9.0/Microsoft.Win32.SystemEvents.dll
+/home/sami/Desktop/Cracker/bin/Debug/net9.0/ScottPlot.dll
+/home/sami/Desktop/Cracker/bin/Debug/net9.0/System.Drawing.Common.dll
+/home/sami/Desktop/Cracker/bin/Debug/net9.0/runtimes/win/lib/netcoreapp3.0/Microsoft.Win32.SystemEvents.dll
+/home/sami/Desktop/Cracker/bin/Debug/net9.0/runtimes/unix/lib/netcoreapp3.0/System.Drawing.Common.dll
+/home/sami/Desktop/Cracker/bin/Debug/net9.0/runtimes/win/lib/netcoreapp3.0/System.Drawing.Common.dll

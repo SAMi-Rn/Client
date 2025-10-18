@@ -264,9 +264,9 @@ public sealed class FsmHandler
         // sort by threads
         var rows = ctx.Results.OrderBy(r => r.Threads).ToList();
 
-        // baseline from the first row's time
+        // baseline from the first row
         double baseline = rows[0].Seconds > 0 ? rows[0].Seconds : 1.0;
-        
+
         var headers = new[] { "threads", "found", "time(s)", "speed(x)" };
         var data = rows.Select(r => new[]
         {
@@ -275,22 +275,31 @@ public sealed class FsmHandler
             r.Seconds.ToString("0.000"),
             (baseline / (r.Seconds > 0 ? r.Seconds : 1.0)).ToString("0.00") + "×",
         }).ToList();
-    
+
         Console.WriteLine();
         PrintTable(headers, data);
-    
+
         Console.WriteLine();
         PrintBarChart("\t\t  Time vs Threads",
             rows.Select(r => r.Threads.ToString()).ToList(),
             rows.Select(r => r.Seconds).ToList(),
             "s");
-        
+
         var speed = rows.Select(r => baseline / (r.Seconds > 0 ? r.Seconds : 1.0)).ToList();
         Console.WriteLine();
         PrintBarChart("\t\t Speed vs Threads",
             rows.Select(r => r.Threads.ToString()).ToList(),
             speed,
             "×");
+        try
+        {
+            SaveScottPlotCharts(rows);
+        }
+        catch (Exception ex)
+        {
+            if (ctx.Verbose)
+                Console.WriteLine($"[warn] Failed to save ScottPlot charts: {ex.Message}");
+        }
     }
 
     private static void PrintTable(string[] headers, List<string[]> rows)
@@ -358,5 +367,35 @@ public sealed class FsmHandler
             string bar = new string('█', Math.Max(0, n));
             Console.WriteLine($"{xs[i],3} | {bar,-40} {ys[i]:0.###}{unit}");
         }
+    }
+    
+    private static void SaveScottPlotCharts(List<FsmRow> rows)
+    {
+        if (rows == null || rows.Count == 0)
+        {
+            return;
+        }
+        
+        double[] xs = rows.Select(r => (double)r.Threads).ToArray();
+        double[] ysTime = rows.Select(r => r.Seconds).ToArray();
+
+        double baseline = rows[0].Seconds > 0 ? rows[0].Seconds : rows.Select(r => r.Seconds).FirstOrDefault(s => s > 0, 1.0);
+        double[] ysSpeed = ysTime.Select(t => baseline / (t > 0 ? t : 1.0)).ToArray();
+        
+        var plt1 = new ScottPlot.Plot(800, 500);
+        plt1.Title("Time vs Threads");
+        plt1.XLabel("Threads");
+        plt1.YLabel("Seconds");
+        plt1.AddScatter(xs, ysTime, markerSize: 5);
+        plt1.SaveFig("time_vs_threads.png");
+        
+        var plt2 = new ScottPlot.Plot(800, 500);
+        plt2.Title("Speed vs Threads");
+        plt2.XLabel("Threads");
+        plt2.YLabel("Speed (×)");
+        plt2.AddScatter(xs, ysSpeed, markerSize: 5);
+        plt2.SaveFig("speed_vs_threads.png");
+
+        Console.WriteLine("[info] Saved charts: time_vs_threads.png, speed_vs_threads.png");
     }
 }

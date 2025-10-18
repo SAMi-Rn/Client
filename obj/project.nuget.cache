@@ -1,10 +1,15 @@
 {
   "version": 2,
-  "dgSpecHash": "nixR2PBr5/Y=",
+  "dgSpecHash": "zYc1yDzjD18=",
   "success": true,
   "projectFilePath": "/home/sami/Desktop/Cracker/Cracker.csproj",
   "expectedPackageFiles": [
-    "/home/sami/.nuget/packages/bcrypt.net-next/4.0.3/bcrypt.net-next.4.0.3.nupkg.sha512"
+    "/home/sami/.nuget/packages/bcrypt.net-next/4.0.3/bcrypt.net-next.4.0.3.nupkg.sha512",
+    "/home/sami/.nuget/packages/microsoft.netcore.platforms/3.1.4/microsoft.netcore.platforms.3.1.4.nupkg.sha512",
+    "/home/sami/.nuget/packages/microsoft.win32.systemevents/4.7.0/microsoft.win32.systemevents.4.7.0.nupkg.sha512",
+    "/home/sami/.nuget/packages/scottplot/4.1.69/scottplot.4.1.69.nupkg.sha512",
+    "/home/sami/.nuget/packages/system.drawing.common/4.7.2/system.drawing.common.4.7.2.nupkg.sha512",
+    "/home/sami/.nuget/packages/system.numerics.vectors/4.5.0/system.numerics.vectors.4.5.0.nupkg.sha512"
   ],
   "logs": []
 }
