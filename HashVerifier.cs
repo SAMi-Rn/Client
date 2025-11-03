@@ -1,4 +1,4 @@
-namespace Cracker;
+namespace Client;
 
 using System;
 

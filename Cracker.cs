@@ -1,4 +1,4 @@
-namespace Cracker;
+namespace Client;
 
 using System;
 using System.IO;
@@ -15,12 +15,12 @@ public static class Cracker
         [MarshalAs(UnmanagedType.LPStr)] string setting,
         ref IntPtr dataPtr,
         ref int size);
-    
+
     private static CryptRaDelegate? cryptRaFunc;
     private static IntPtr nativeLibHandle = IntPtr.Zero;
     private static bool cryptInitialized = false;
     private static readonly object cryptInitLock = new object();
-    
+
     private static long globalStartIndex = 0;
     private static int stopFlag = 0;
     private static bool IsStopped => Volatile.Read(ref stopFlag) != 0;
@@ -54,7 +54,7 @@ public static class Cracker
             }
             catch
             {
-                 // no op
+                // no op
             }
 
             if (nativeLibHandle != IntPtr.Zero)
@@ -65,7 +65,7 @@ public static class Cracker
                 }
                 catch
                 {
-                     // no op
+                    // no op
                 }
             }
         };
@@ -84,6 +84,7 @@ public static class Cracker
             {
                 return;
             }
+
             cryptInitialized = true;
 
             string[] candidates =
@@ -128,22 +129,24 @@ public static class Cracker
     {
         EnsureCryptRaLoaded();
         var f = cryptRaFunc;
-        
+
         if (f == null)
         {
             throw new InvalidOperationException("crypt_ra not bound");
         }
+
         return f;
     }
 
     private static ThreadCryptState GetThreadState()
     {
         var s = threadState.Value;
-        
+
         if (s == null)
         {
             throw new InvalidOperationException("thread-local state unavailable");
         }
+
         return s;
     }
 
@@ -153,7 +156,7 @@ public static class Cracker
         {
             return null;
         }
-        
+
         var cryptRa = GetCryptRa();
         var state = GetThreadState();
         IntPtr resultPtr = cryptRa(plaintext, storedHash, ref state.OpaquePointer, ref state.Size);
@@ -161,18 +164,19 @@ public static class Cracker
         {
             return null;
         }
+
         return Marshal.PtrToStringAnsi(resultPtr);
     }
-    
+
     public static ulong FetchWorkBlock(int blockSize)
     {
         long start = Interlocked.Add(ref globalStartIndex, blockSize) - blockSize;
-        
+
         if (start < 0)
         {
             return ulong.MaxValue;
         }
-        
+
         return (ulong)start;
     }
 
@@ -186,15 +190,16 @@ public static class Cracker
             buffer[i] = alphabet[digit];
             index /= (ulong)alphabetLen;
         }
+
         return new string(buffer);
     }
-    
+
     public static void WorkerLoop(HashVerifier verifier, int passwordLength, char[] alphabet, long total, int blockSize)
     {
         while (!IsStopped)
         {
             ulong startU = FetchWorkBlock(blockSize);
-            
+
             if (startU == ulong.MaxValue)
             {
                 break;
@@ -208,7 +213,7 @@ public static class Cracker
 
             long end = Math.Min(total, start + blockSize);
             for (long j = start; j < end && !IsStopped; ++j)
-            {   
+            {
                 string candidate = IndexToPassword((ulong)j, passwordLength, alphabet);
                 if (verifier.Verify(candidate))
                 {
@@ -220,8 +225,9 @@ public static class Cracker
             }
         }
     }
-    
-    public static string? CrackMultiThread(string storedHash, int passwordLength, char[] alphabet, int numThreads, int blockSize = 1)
+
+    public static string? CrackMultiThread(string storedHash, int passwordLength, char[] alphabet, int numThreads,
+        int blockSize = 1)
     {
         int a = alphabet.Length;
         long total = 1;
@@ -229,6 +235,7 @@ public static class Cracker
         {
             total *= a;
         }
+
         var verifier = new HashVerifier(storedHash);
 
         Interlocked.Exchange(ref globalStartIndex, 0);
@@ -244,7 +251,7 @@ public static class Cracker
         Task.WaitAll(tasks);
         return resultPassword;
     }
-    
+
     public static string? CrackRangeMultiThread(string storedHash, char[] alphabet, int numThreads, int blockSize)
     {
         for (int len = 1;; ++len)
@@ -256,47 +263,50 @@ public static class Cracker
             }
         }
     }
-    
+
     public static string? GetHashForUser(string path, string username)
     {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new ArgumentException("Shadow file path is required.", nameof(path));
+        }
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            throw new ArgumentException("Username is required.", nameof(username));
+        }
+
         if (!File.Exists(path))
         {
+            throw new FileNotFoundException("Shadow file not found.", path);
+        }
+
+        try
+        {
+            foreach (var rawLine in File.ReadLines(path))
+            {
+                var line = rawLine.Trim();
+                if (line.Length == 0 || line.StartsWith("#"))
+                    continue;
+
+                var fields = line.Split(':');
+                if (fields.Length < 2)
+                    continue;
+
+                if (!string.Equals(fields[0], username, StringComparison.Ordinal))
+                    continue;
+
+                var hashField = fields[1];
+                if (hashField == "!" || hashField == "*" || hashField == "x" || string.IsNullOrEmpty(hashField))
+                    return null;
+
+                return hashField;
+            }
+
             return null;
         }
-        
-        foreach (var rawLine in File.ReadAllLines(path))
+        catch (UnauthorizedAccessException ex)
         {
-            var line = rawLine.Trim();
-            if (line.Length == 0)
-            {
-                continue;
-            }
-            
-            // comments
-            if (line.StartsWith("#"))
-            {
-                continue;
-            }
-            var fields = line.Split(':');
-
-            if (fields.Length < 2)
-            {
-                continue;
-            }
-
-            if (fields[0] != username)
-            {
-                continue;
-            }
-            var hashField = fields[1];
-            if (hashField == "!" || hashField == "*" || hashField == "x")
-            {
-                return null;
-            }
-            
-            return hashField;
+            throw new IOException($"Access to shadow file denied: {path}", ex);
         }
-        
-        return null;
     }
 }

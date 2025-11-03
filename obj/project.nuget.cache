@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "zYc1yDzjD18=",
+  "dgSpecHash": "n2E3gOeo8kY=",
   "success": true,
-  "projectFilePath": "/home/sami/Desktop/Cracker/Cracker.csproj",
+  "projectFilePath": "/home/sami/Desktop/Client/Client.csproj",
   "expectedPackageFiles": [
     "/home/sami/.nuget/packages/bcrypt.net-next/4.0.3/bcrypt.net-next.4.0.3.nupkg.sha512",
     "/home/sami/.nuget/packages/microsoft.netcore.platforms/3.1.4/microsoft.netcore.platforms.3.1.4.nupkg.sha512",

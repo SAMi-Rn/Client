@@ -1,4 +1,4 @@
-namespace Cracker;
+namespace Client;
 
 public enum FsmState
 {

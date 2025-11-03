@@ -1,4 +1,4 @@
-namespace Cracker;
+namespace Client;
 
 using System;
 using System.Collections.Generic;
@@ -126,15 +126,24 @@ public sealed class FsmHandler
 
     public FsmState handleReadShadow()
     {
-        ctx.StoredHash = Cracker.GetHashForUser(ctx.ShadowFile, ctx.Username);
-        if (ctx.StoredHash is null)
+        try
         {
-            var msg = $"No hash found for user: {ctx.Username}";
-            ctx.Error = new InvalidOperationException(msg);
+            ctx.StoredHash = Cracker.GetHashForUser(ctx.ShadowFile, ctx.Username);
+
+            if (ctx.StoredHash is null)
+            {
+                var msg = $"No usable hash found for user '{ctx.Username}' in '{ctx.ShadowFile}'. ";
+                ctx.Error = new InvalidOperationException(msg);
+                return FsmState.ERROR;
+            }
+
+            return FsmState.PREPARE_ALPHABET;
+        }
+        catch (Exception ex) 
+        {
+            ctx.Error = ex;
             return FsmState.ERROR;
         }
-
-        return FsmState.PREPARE_ALPHABET;
     }
 
     public FsmState handlePrepareAlphabet()

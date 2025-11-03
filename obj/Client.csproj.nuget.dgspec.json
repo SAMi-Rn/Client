@@ -1,15 +1,15 @@
 {
   "format": 1,
   "restore": {
-    "/home/sami/Desktop/Client/Cracker.csproj": {}
+    "/home/sami/Desktop/Client/Client.csproj": {}
   },
   "projects": {
-    "/home/sami/Desktop/Client/Cracker.csproj": {
+    "/home/sami/Desktop/Client/Client.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/sami/Desktop/Client/Cracker.csproj",
-        "projectName": "Cracker",
-        "projectPath": "/home/sami/Desktop/Client/Cracker.csproj",
+        "projectUniqueName": "/home/sami/Desktop/Client/Client.csproj",
+        "projectName": "Client",
+        "projectPath": "/home/sami/Desktop/Client/Client.csproj",
         "packagesPath": "/home/sami/.nuget/packages/",
         "outputPath": "/home/sami/Desktop/Client/obj/",
         "projectStyle": "PackageReference",

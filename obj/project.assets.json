@@ -298,11 +298,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/sami/Desktop/Cracker/Cracker.csproj",
-      "projectName": "Cracker",
-      "projectPath": "/home/sami/Desktop/Cracker/Cracker.csproj",
+      "projectUniqueName": "/home/sami/Desktop/Client/Client.csproj",
+      "projectName": "Client",
+      "projectPath": "/home/sami/Desktop/Client/Client.csproj",
       "packagesPath": "/home/sami/.nuget/packages/",
-      "outputPath": "/home/sami/Desktop/Cracker/obj/",
+      "outputPath": "/home/sami/Desktop/Client/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/sami/.nuget/NuGet/NuGet.Config"
