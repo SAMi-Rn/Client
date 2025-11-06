@@ -40,20 +40,26 @@ public static class BatchCracker
         // TODO: remove useCrypt and always use HashVerifier
         bool useCrypt = !string.IsNullOrEmpty(job.StoredHash) && job.StoredHash.StartsWith("$");
         var  verifier = useCrypt ? new HashVerifier(job.StoredHash) : null;
-
+        
+        ThreadPool.GetMinThreads(out var minW, out var minIO);
+        ThreadPool.SetMinThreads(Math.Max(minW, threads), minIO);
+        
         var tasks = new List<Task>(threads);
         var perWorker = new long[threads];
         for (int t = 0; t < threads; t++)
         {
             int worker = t;
-            tasks.Add(Task.Run(async () =>
+            tasks.Add(Task.Factory.StartNew(() =>
             {
                 Log.Info($"[W{worker}] start tid={Environment.CurrentManagedThreadId}");
                 
                 var (length, totalBefore, countAtLength) = FindStartBlock(start, alphabetLength);
                 while (Volatile.Read(ref stopFlag) == 0)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        return;
+                    }
 
                     long index = Interlocked.Increment(ref globalNext) - 1;
                     if (index >= end)
@@ -91,10 +97,12 @@ public static class BatchCracker
                             Enumerable.Range(0, perWorker.Length)
                                 .Select(i => $"W{i}:{Interlocked.Read(ref perWorker[i])}"));
                         Log.Info($"[local] per-worker tried: {snapshot}");
-                        await onCheckpoint(triedNow, last); 
+                        _ = onCheckpoint(triedNow, last).ContinueWith(_ => { }, TaskScheduler.Default);
                     }
                 }
-            }, cancellationToken));
+            }, CancellationToken.None,
+                TaskCreationOptions.LongRunning,   // dedicated thread per worker
+                TaskScheduler.Default));
         }
         
         // wait for all workers to finish
