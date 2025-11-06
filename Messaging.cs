@@ -65,7 +65,7 @@ public static class Json
     // Read one JSON line and parse to Envelope
     public static async Task<Message?> ReadLineAsync(StreamReader reader, CancellationToken token = default)
     {
-        string? line = await reader.ReadLineAsync().WaitAsync(token);
+        string? line = await reader.ReadLineAsync(token);
         if (string.IsNullOrWhiteSpace(line)) return null;
         return JsonSerializer.Deserialize<Message>(line, JsonOpts);
     }
