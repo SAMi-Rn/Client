@@ -13,6 +13,7 @@ public static class Kinds
     public const string AssignWork     = "ASSIGN_WORK";
     public const string WorkResult     = "WORK_RESULT"; 
     public const string Checkpoint    = "CHECKPOINT";
+    public const string Stop           = "STOP"; 
 }
 
 public class Protocol
@@ -72,7 +73,7 @@ public class Protocol
     public static async Task ReceiveJobsAsync(
         StreamReader reader,
         NetworkStream stream,
-        Func<AssignWork, Task<WorkResult>> onWork,
+        Func<AssignWork, CancellationToken, Task<WorkResult>> onWork,
         CancellationToken cancellationToken = default)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -84,19 +85,64 @@ public class Protocol
                 Log.Info("Client: server closed the connection.");
                 break;
             }
-
+            if (string.Equals(msg.Type, Kinds.Stop, StringComparison.Ordinal))
+            {
+                var stop = Json.DeserializeBody<Stop>(msg);
+                Log.In($"{Kinds.Stop} reason='{stop.Reason}'");
+                break; // stop listening; connection will close
+            }
+            
             if (!string.Equals(msg.Type, Kinds.AssignWork, StringComparison.Ordinal))
             {
                 Log.Info($"Client: unexpected '{msg.Type}', ignoring and waiting for next.");
-                continue;
-            }
-
+                continue; 
+            } 
             var job = Json.DeserializeBody<AssignWork>(msg);
             Log.In($"{Kinds.AssignWork} job={job.JobId} range=[{job.StartIndex}..{job.StartIndex + job.Count - 1}]");
-            
-            var result = await ExecuteAssignmentAsync(job, onWork, cancellationToken);
 
-            await SendResultAsync(stream, result, cancellationToken);
+            // 🔑 Create a job-scoped CTS we can cancel if STOP arrives mid-batch
+            using var jobCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+            // Start the cracking task
+            var jobTask = onWork(job, jobCts.Token);
+
+            // Start a tiny waiter that only returns when STOP is received or connection closed
+            var stopTask = Task.Run(async () =>
+            {
+                while (!jobCts.IsCancellationRequested)
+                {
+                    Message? m;
+                    try { m = await Json.ReadLineAsync(reader, cancellationToken); }
+                    catch (OperationCanceledException) { return "canceled"; }
+
+                    if (m is null) return "eof"; // server closed connection
+
+                    if (string.Equals(m.Type, Kinds.Stop, StringComparison.Ordinal))
+                    {
+                        var s = Json.DeserializeBody<Stop>(m);
+                        Log.In($"{Kinds.Stop} reason='{s.Reason}'");
+                        return "stop";
+                    }
+
+                    // Ignore anything else while job runs
+                }
+                return "job-canceled";
+            }, cancellationToken);
+
+            var finished = await Task.WhenAny(jobTask, stopTask);
+
+            if (finished == stopTask)
+            {
+                // STOP (or EOF) arrived → cancel cracking immediately and wait it out
+                jobCts.Cancel();
+                try { await jobTask; } catch (OperationCanceledException) { /* expected */ }
+                break; // exit ReceiveJobsAsync
+            }
+
+            // Job completed first → send result then loop for next ASSIGN_WORK
+            var result = await jobTask;
+            await Json.SendLineAsync(stream, new { type = Kinds.WorkResult, body = result }, cancellationToken);
+            Log.Out($"{Kinds.WorkResult} job={result.JobId} found={result.Found} tried={result.Tried} ms={result.DurationMs}");
         }
     }
     

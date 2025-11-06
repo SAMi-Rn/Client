@@ -36,6 +36,8 @@ public sealed record WorkResult(
     long   Tried,
     long   DurationMs);
 
+public sealed record Stop(string Reason);   
+
 public static class Json
 {
     private static readonly JsonSerializerOptions JsonOpts = new()

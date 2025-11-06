@@ -53,17 +53,17 @@ public static class ClientRunner
         string nodeId = $"c-{Environment.MachineName}";
         string listenHost = GetOutboundIp(serverHost);
         
-        using var cancellationToken = new CancellationTokenSource();
+        using var appCts = new CancellationTokenSource();
         Console.CancelKeyPress += (s, e) =>
         {
             e.Cancel = true; 
-            cancellationToken.Cancel();
+            appCts.Cancel();
         };
         
-        var acceptConnection = Protocol.AcceptHelloAsync(listenPort, nodeId, cancellationToken.Token);
+        var acceptConnection = Protocol.AcceptHelloAsync(listenPort, nodeId, appCts.Token);
         
         var register = new ClientRegister(nodeId, listenHost, listenPort, threads);
-        Protocol.RegisterAsync(serverHost, serverPort, register, cancellationToken.Token).GetAwaiter().GetResult();
+        Protocol.RegisterAsync(serverHost, serverPort, register, appCts.Token).GetAwaiter().GetResult();
         
         var channel = await acceptConnection;
         if (channel is null)
@@ -88,18 +88,27 @@ public static class ClientRunner
         await Protocol.ReceiveJobsAsync(
             reader,
             stream,
-            onWork: job => BatchCracker.Run(
-                job,
-                threads,
-                job.CheckpointEvery,
-                async (tried, lastIndex) =>
-                {
-                    var ck = new Checkpoint(job.JobId, tried, lastIndex, DateTimeOffset.UtcNow);
-                    await Json.SendLineAsync(stream, new { type = Kinds.Checkpoint, body = ck }, cancellationToken.Token);
-                    Log.Out($"{Kinds.Checkpoint} job={ck.JobId} tried={ck.Tried} lastIndex={ck.LastIndex}");
-                },
-                cancellationToken.Token),
-            cancellationToken: cancellationToken.Token
+            onWork: (job, jobToken) => 
+            {
+                return BatchCracker.Run(
+                    job,
+                    threads,
+                    job.CheckpointEvery,
+                    async (tried, lastIndex) =>
+                    {
+                        try
+                        {
+                            var ck = new Checkpoint(job.JobId, tried, lastIndex, DateTimeOffset.UtcNow);
+                            await Json.SendLineAsync(stream, new { type = Kinds.Checkpoint, body = ck }, jobToken);
+                            Log.Out($"{Kinds.Checkpoint} job={ck.JobId} tried={ck.Tried} lastIndex={ck.LastIndex}");
+                        }
+                        catch
+                        {
+                        }
+                    },
+                    jobToken);
+            },
+            cancellationToken: appCts.Token
         );
         return 0;
     }
