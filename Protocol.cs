@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Drawing.Printing;
 
 namespace Client;
@@ -9,6 +10,9 @@ public static class Kinds
     public const string ServerHello    = "SERVER_HELLO";
     public const string ClientRegister = "CLIENT_REGISTER";
     public const string ClientHelloAck = "CLIENT_HELLO_ACK";
+    public const string AssignWork     = "ASSIGN_WORK";
+    public const string WorkResult     = "WORK_RESULT"; 
+    public const string Checkpoint    = "CHECKPOINT";
 }
 
 public class Protocol
@@ -25,33 +29,116 @@ public class Protocol
         await Json.SendLineAsync(networkStream, line, cancellationToken);
     }
 
-    public static async Task AcceptHelloAsync(int listenPort, string nodeId, CancellationToken cancellationToken = default)
+    public static async Task<(TcpClient Client, StreamReader Reader)?> AcceptHelloAsync(int listenPort, string nodeId, CancellationToken cancellationToken = default)
     {
         var listener = new TcpListener(IPAddress.Any, listenPort);
         listener.Start();
 
         try
         {
-            using var client = await listener.AcceptTcpClientAsync();
-            using var networkStream = client.GetStream();
+            var client = await listener.AcceptTcpClientAsync();
+            var networkStream = client.GetStream();
+            var reader = Json.CreateReader(networkStream); 
+            
             var endPoint = client.Client.RemoteEndPoint?.ToString() ?? "<unknown>";
             
-            var message = await Json.ReadLineAsync(networkStream, cancellationToken);
+            // SERVER_HELLO
+            var message = await Json.ReadLineAsync(reader, cancellationToken);
             if (message is null || !string.Equals(message.Type, Kinds.ServerHello, StringComparison.OrdinalIgnoreCase))
             {
-                Console.WriteLine($"Client: Invalid Hello message from {endPoint}, closing connection.");
-                return;
+                Log.Info($"Client: invalid HELLO from {endPoint}, closing.");
+                client.Dispose();
+                return null;
             }
-         
+            
             var hello = Json.DeserializeBody<ServerHello>(message);
-            Console.WriteLine($"<- SERVER_HELLO time={hello.ServerTime:o} from {endPoint} for node={hello.NodeId}");
-            var ack = new {type = "Client_Hello_Ack", body = new ClientHelloAck(nodeId, true)};
+            Log.In($"{Kinds.ServerHello} time={hello.ServerTime:o} from {endPoint} for node={hello.NodeId}");
+            
+            // CLIENT_HELLO_ACK
+            var ack = new {type = Kinds.ClientHelloAck
+                , body = new ClientHelloAck(nodeId, true)};
             await Json.SendLineAsync(networkStream, ack, cancellationToken);
-            Console.WriteLine($"-> CLIENT_HELLO_ACK sent to {endPoint}");
+            Log.Out($"{Kinds.ClientHelloAck} sent to {endPoint}");
+            
+            return (client, reader);
         }
         finally
         {
             listener.Stop();
         }
+    }
+    
+    // receive ASSIGN_WORK, run it, send WORK_RESULT.
+    public static async Task ReceiveJobsAsync(
+        StreamReader reader,
+        NetworkStream stream,
+        Func<AssignWork, Task<WorkResult>> onWork,
+        CancellationToken cancellationToken = default)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            // read next message
+            var msg = await Json.ReadLineAsync(reader, cancellationToken);
+            if (msg is null)
+            {
+                Log.Info("Client: server closed the connection.");
+                break;
+            }
+
+            if (!string.Equals(msg.Type, Kinds.AssignWork, StringComparison.Ordinal))
+            {
+                Log.Info($"Client: unexpected '{msg.Type}', ignoring and waiting for next.");
+                continue;
+            }
+
+            var job = Json.DeserializeBody<AssignWork>(msg);
+            Log.In($"{Kinds.AssignWork} job={job.JobId} range=[{job.StartIndex}..{job.StartIndex + job.Count - 1}]");
+            
+            var result = await ExecuteAssignmentAsync(job, onWork, cancellationToken);
+
+            await SendResultAsync(stream, result, cancellationToken);
+        }
+    }
+    
+    
+    private static async Task<AssignWork?> ReceiveWorkAsync(StreamReader reader, CancellationToken cancellationToken)
+    {
+        var msg = await Json.ReadLineAsync(reader, cancellationToken);
+        if (msg is null || !string.Equals(msg.Type, Kinds.AssignWork, StringComparison.Ordinal))
+        {
+            Log.Info($"Client: expected {Kinds.AssignWork}, got '{msg?.Type ?? "EOF"}'.");
+            return null;
+        }
+
+        var job = Json.DeserializeBody<AssignWork>(msg);
+        Log.In($"{Kinds.AssignWork} job={job.JobId} range=[{job.StartIndex}..{job.StartIndex + job.Count - 1}]");
+        return job;
+    }
+    
+    
+    private static async Task<WorkResult> ExecuteAssignmentAsync(
+        AssignWork job,
+        Func<AssignWork, Task<WorkResult>> handleWork,
+        CancellationToken cancellationToken)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            var result = await handleWork(job);
+            return result with { DurationMs = stopwatch.ElapsedMilliseconds };
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex)
+        {
+            Log.Info($"Client: assignment failed: {ex.Message}");
+            return new WorkResult(job.JobId, Found: false, Password: null, Tried: 0, DurationMs: stopwatch.ElapsedMilliseconds);
+        }
+    }
+    
+    
+    private static async Task SendResultAsync(Stream stream, WorkResult result, CancellationToken cancellationToken)
+    {
+        await Json.SendLineAsync(stream, new { type = Kinds.WorkResult, body = result }, cancellationToken);
+        Log.Out($"{Kinds.WorkResult} job={result.JobId} found={result.Found} tried={result.Tried} ms={result.DurationMs}");
     }
 }

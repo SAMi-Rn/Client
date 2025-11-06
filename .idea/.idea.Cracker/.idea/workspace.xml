@@ -7,41 +7,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="41a17343-7824-4631-a6f7-86433b4ea68f" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.Cracker/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.Cracker/.idea/copilot.data.migration.agent.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.Cracker/.idea/indexLayout.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.Cracker/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cracker.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Cracker.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cracker.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Client.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cracker.sln" beforeDir="false" afterPath="$PROJECT_DIR$/Client.sln" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FsmContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FsmContext.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FsmHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FsmHandler.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FsmState.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FsmState.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/HashVerifier.cs" beforeDir="false" afterPath="$PROJECT_DIR$/HashVerifier.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Program.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bin/Debug/net9.0/Cracker.dll" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/bin/Debug/net9.0/Cracker.pdb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/Cracker.csproj.nuget.dgspec.json" beforeDir="false" afterPath="$PROJECT_DIR$/obj/Cracker.csproj.nuget.dgspec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/Cracker.csproj.nuget.g.props" beforeDir="false" afterPath="$PROJECT_DIR$/obj/Cracker.csproj.nuget.g.props" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/Debug/net9.0/Cracker.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/obj/Debug/net9.0/Cracker.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/Debug/net9.0/Cracker.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/obj/Debug/net9.0/Cracker.AssemblyInfoInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/Debug/net9.0/Cracker.GeneratedMSBuildEditorConfig.editorconfig" beforeDir="false" afterPath="$PROJECT_DIR$/obj/Debug/net9.0/Cracker.GeneratedMSBuildEditorConfig.editorconfig" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/Debug/net9.0/Cracker.assets.cache" beforeDir="false" afterPath="$PROJECT_DIR$/obj/Debug/net9.0/Cracker.assets.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/Debug/net9.0/Cracker.dll" beforeDir="false" afterPath="$PROJECT_DIR$/obj/Debug/net9.0/Cracker.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/Debug/net9.0/Cracker.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/obj/Debug/net9.0/Cracker.pdb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/Debug/net9.0/Cracker.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/obj/Debug/net9.0/Cracker.sourcelink.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/Debug/net9.0/apphost" beforeDir="false" afterPath="$PROJECT_DIR$/obj/Debug/net9.0/apphost" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/Debug/net9.0/ref/Cracker.dll" beforeDir="false" afterPath="$PROJECT_DIR$/obj/Debug/net9.0/ref/Cracker.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/Debug/net9.0/refint/Cracker.dll" beforeDir="false" afterPath="$PROJECT_DIR$/obj/Debug/net9.0/refint/Cracker.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/project.assets.json" beforeDir="false" afterPath="$PROJECT_DIR$/obj/project.assets.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/project.nuget.cache" beforeDir="false" afterPath="$PROJECT_DIR$/obj/project.nuget.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/project.packagespec.json" beforeDir="false" afterPath="$PROJECT_DIR$/obj/project.packagespec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/obj/rider.project.model.nuget.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/obj/rider.project.restore.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/speed_vs_threads.png" beforeDir="false" afterPath="$PROJECT_DIR$/speed_vs_threads.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/time_vs_threads.png" beforeDir="false" afterPath="$PROJECT_DIR$/time_vs_threads.png" afterDir="false" />
-    </list>
+    <list default="true" id="41a17343-7824-4631-a6f7-86433b4ea68f" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -56,6 +22,7 @@
     <setting file="file://$PROJECT_DIR$/Protocol.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/imgcat" root0="FORCE_HIGHLIGHTING" />
   </component>
+  <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 7
 }</component>
@@ -86,11 +53,12 @@
       <window_info id="Merge Requests" />
       <window_info id="Assembly Explorer" side_tool="true" />
       <window_info id="Backup and Sync History" />
+      <window_info id="Commit_Guest" show_stripe_button="false" />
       <window_info id="Pull Requests" />
       <window_info id="Learn" />
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.23515625" />
-      <window_info id="Commit" order="1" weight="0.25" />
-      <window_info id="Structure" order="2" side_tool="true" weight="0.25" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.50071836" visible="true" weight="0.23515625" />
+      <window_info id="Commit" order="1" sideWeight="0.50071836" weight="0.23515625" />
+      <window_info active="true" id="Structure" order="2" sideWeight="0.49928162" side_tool="true" visible="true" weight="0.23515625" />
       <window_info anchor="bottom" id="Database Changes" />
       <window_info anchor="bottom" id="TypeScript" />
       <window_info anchor="bottom" id="Build" />
@@ -109,6 +77,7 @@
       <window_info anchor="bottom" id="Problems View" order="2" />
       <window_info active="true" anchor="bottom" id="Terminal" order="3" visible="true" weight="0.24357706" />
       <window_info anchor="bottom" id="Services" order="4" />
+      <window_info anchor="right" id="PR AI Assistant" />
       <window_info anchor="right" id="RoslynVisualizer" />
       <window_info anchor="right" id="Endpoints" />
       <window_info anchor="right" id="TscnScenePreviewWindowId" />
@@ -117,6 +86,7 @@
       <window_info anchor="right" id="dotCoverToolWindow" />
       <window_info anchor="right" id="Coverage" side_tool="true" />
       <window_info anchor="right" id="GitHub Copilot Chat" />
+      <window_info anchor="right" id="GitHub Coding Agent Jobs" />
       <window_info anchor="right" content_ui="combo" id="Notifications" order="0" weight="0.25" />
       <window_info anchor="right" id="AIAssistant" order="1" weight="0.25" />
       <window_info anchor="right" id="Database" order="2" weight="0.25" />
@@ -161,13 +131,14 @@
       <workItem from="1760750305318" duration="5351000" />
       <workItem from="1760835387587" duration="989000" />
       <workItem from="1760854794482" duration="1032000" />
-      <workItem from="1762161487401" duration="1921000" />
+      <workItem from="1762161487401" duration="2007000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="UnityCheckinConfiguration" checkUnsavedScenes="true" />
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />

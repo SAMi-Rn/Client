@@ -10,6 +10,32 @@ public sealed record Message(
     [property: JsonPropertyName("body")] JsonElement body
     );
 
+// Server -> Client
+public sealed record AssignWork(
+    string JobId,
+    string StoredHash,
+    long   StartIndex,
+    long   Count,
+    int    CheckpointEvery 
+    );
+
+// Client -> Server
+public sealed record Checkpoint
+(
+    string JobId,
+    long   Tried,
+    long   LastIndex,
+    DateTimeOffset Ts
+);
+
+// Client -> Server
+public sealed record WorkResult(
+    string JobId,
+    bool   Found,
+    string? Password,
+    long   Tried,
+    long   DurationMs);
+
 public static class Json
 {
     private static readonly JsonSerializerOptions JsonOpts = new()
@@ -27,19 +53,18 @@ public static class Json
         await stream.WriteAsync(bytes, token);
         await stream.FlushAsync(token);
     }
+
+    public static StreamReader CreateReader(Stream stream)
+    {
+        return new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 4096, 
+            leaveOpen: true);
+    }
     
     // Read one JSON line and parse to Envelope
-    public static async Task<Message?> ReadLineAsync(Stream stream, CancellationToken token = default)
+    public static async Task<Message?> ReadLineAsync(StreamReader reader, CancellationToken token = default)
     {
-        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: false,
-            bufferSize: 1024, leaveOpen: true);
         string? line = await reader.ReadLineAsync().WaitAsync(token);
-        
-        // end of stream
-        if (string.IsNullOrWhiteSpace(line))
-        {
-            return null;
-        }
+        if (string.IsNullOrWhiteSpace(line)) return null;
         return JsonSerializer.Deserialize<Message>(line, JsonOpts);
     }
 
