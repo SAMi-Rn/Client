@@ -41,15 +41,12 @@ public static class BatchCracker
         bool useCrypt = !string.IsNullOrEmpty(job.StoredHash) && job.StoredHash.StartsWith("$");
         var  verifier = useCrypt ? new HashVerifier(job.StoredHash) : null;
         
-        ThreadPool.GetMinThreads(out var minW, out var minIO);
-        ThreadPool.SetMinThreads(Math.Max(minW, threads), minIO);
-        
         var tasks = new List<Task>(threads);
         var perWorker = new long[threads];
         for (int t = 0; t < threads; t++)
         {
             int worker = t;
-            tasks.Add(Task.Factory.StartNew(() =>
+            tasks.Add(Task.Run(async () =>
             {
                 Log.Info($"[W{worker}] start tid={Environment.CurrentManagedThreadId}");
                 
@@ -97,12 +94,10 @@ public static class BatchCracker
                             Enumerable.Range(0, perWorker.Length)
                                 .Select(i => $"W{i}:{Interlocked.Read(ref perWorker[i])}"));
                         Log.Info($"[local] per-worker tried: {snapshot}");
-                        _ = onCheckpoint(triedNow, last).ContinueWith(_ => { }, TaskScheduler.Default);
+                        await onCheckpoint(triedNow, last);
                     }
                 }
-            }, CancellationToken.None,
-                TaskCreationOptions.LongRunning,   // dedicated thread per worker
-                TaskScheduler.Default));
+            }, cancellationToken));
         }
         
         // wait for all workers to finish
