@@ -41,22 +41,24 @@ public static class BatchCracker
         bool useCrypt = !string.IsNullOrEmpty(job.StoredHash) && job.StoredHash.StartsWith("$");
         var  verifier = useCrypt ? new HashVerifier(job.StoredHash) : null;
         
+        ThreadPool.GetMinThreads(out var minW, out var minIO);
+        ThreadPool.SetMinThreads(Math.Max(minW, threads), minIO);
+        
         var tasks = new List<Task>(threads);
         var perWorker = new long[threads];
+        var startGate = new ManualResetEventSlim(false);
         for (int t = 0; t < threads; t++)
         {
             int worker = t;
             tasks.Add(Task.Run(async () =>
             {
+                startGate.Wait(cancellationToken);
                 Log.Info($"[W{worker}] start tid={Environment.CurrentManagedThreadId}");
                 
                 var (length, totalBefore, countAtLength) = FindStartBlock(start, alphabetLength);
                 while (Volatile.Read(ref stopFlag) == 0)
                 {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        return;
-                    }
+                    cancellationToken.ThrowIfCancellationRequested();
 
                     long index = Interlocked.Increment(ref globalNext) - 1;
                     if (index >= end)
@@ -99,7 +101,8 @@ public static class BatchCracker
                 }
             }, cancellationToken));
         }
-        
+        startGate.Set();
+        bool cancelled = false;
         // wait for all workers to finish
         try
         {
@@ -107,10 +110,16 @@ public static class BatchCracker
         }
         catch (OperationCanceledException)
         {
-             /* propagate below via token */
+            cancelled = true;
         }
-
+        if (cancelled && Volatile.Read(ref stopFlag) == 0)
+        {
+            long triedNow = Interlocked.Read(ref triedTotal);
+            long lastIdx  = Volatile.Read(ref maxIndexSeen);
+            try { await onCheckpoint(triedNow, lastIdx); } catch { /* socket might be closed — ignore */ }
+        }
         bool found = foundPassword is not null;
+        
         return new WorkResult(job.JobId, found, foundPassword, Interlocked.Read(ref triedTotal), 0);
     }
     
