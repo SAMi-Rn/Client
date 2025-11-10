@@ -1,39 +1,30 @@
 namespace Client;
 
 using System;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
 
 public static class Cracker
 {
-    // binding to crypt_ra
+    // ---- native bindings ----
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate IntPtr CryptRaDelegate(
-        [MarshalAs(UnmanagedType.LPStr)] string key,
-        [MarshalAs(UnmanagedType.LPStr)] string setting,
-        ref IntPtr dataPtr,
-        ref int size);
+    private delegate IntPtr CryptRaDelegate(string key, string setting, ref IntPtr dataPtr, ref int size);
 
-    private static CryptRaDelegate? cryptRaFunc;
-    private static IntPtr nativeLibHandle = IntPtr.Zero;
-    private static bool cryptInitialized = false;
-    private static readonly object cryptInitLock = new object();
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate IntPtr CryptDelegate(string key, string setting); // classic crypt(key, salt)
 
-    private static long globalStartIndex = 0;
-    private static int stopFlag = 0;
-    private static bool IsStopped => Volatile.Read(ref stopFlag) != 0;
-    private static string? resultPassword = null;
+    private static CryptRaDelegate? s_cryptRa;
+    private static CryptDelegate?    s_crypt;       // fallback if crypt_ra unavailable
+    private static IntPtr            s_libHandle = IntPtr.Zero;
+    private static bool              s_inited;
+    private static readonly object   s_initLock = new();
 
-    private sealed class ThreadCryptState
-    {
-        public IntPtr OpaquePointer = IntPtr.Zero;
-        public int Size = 0;
-    }
+    // Per-thread opaque state for crypt_ra (re-entrant)
+    private sealed class ThreadCryptState { public IntPtr Opaque = IntPtr.Zero; public int Size = 0; }
+    private static readonly ThreadLocal<ThreadCryptState> s_tls =
+        new(() => new ThreadCryptState(), trackAllValues: true);
 
-    private static ThreadLocal<ThreadCryptState> threadState =
-        new ThreadLocal<ThreadCryptState>(() => new ThreadCryptState());
+    private static readonly object s_cryptLock = new(); // guard classic crypt (not re-entrant)
 
     static Cracker()
     {
@@ -41,59 +32,29 @@ public static class Cracker
         {
             try
             {
-                foreach (var st in threadState.Values)
+                foreach (var st in s_tls.Values)
                 {
-                    if (st.OpaquePointer != IntPtr.Zero)
-                    {
-                        Marshal.FreeHGlobal(st.OpaquePointer);
-                        st.OpaquePointer = IntPtr.Zero;
-                    }
+                    if (st.Opaque != IntPtr.Zero) Marshal.FreeHGlobal(st.Opaque);
+                    st.Opaque = IntPtr.Zero;
                 }
+                s_tls.Dispose();
+            } catch { /* ignore */ }
 
-                threadState.Dispose();
-            }
-            catch
-            {
-                // no op
-            }
-
-            if (nativeLibHandle != IntPtr.Zero)
-            {
-                try
-                {
-                    NativeLibrary.Free(nativeLibHandle);
-                }
-                catch
-                {
-                    // no op
-                }
-            }
+            try { if (s_libHandle != IntPtr.Zero) NativeLibrary.Free(s_libHandle); } catch { /* ignore */ }
         };
     }
 
-    public static void EnsureCryptRaLoaded()
+    private static void EnsureLoaded()
     {
-        if (cryptInitialized)
+        if (s_inited) return;
+        lock (s_initLock)
         {
-            return;
-        }
+            if (s_inited) return;
+            s_inited = true;
 
-        lock (cryptInitLock)
-        {
-            if (cryptInitialized)
-            {
-                return;
-            }
-
-            cryptInitialized = true;
-
-            string[] candidates =
-            {
-                "libxcrypt.so.2",
-                "libxcrypt.so.1",
-                "libxcrypt.so.0",
-                "libcrypt.so.1",
-                "libcrypt.so",
+            string[] candidates = {
+                "libxcrypt.so.2","libxcrypt.so.1","libxcrypt.so.0",
+                "libcrypt.so.2","libcrypt.so.1","libcrypt.so",
                 "libc.so.6"
             };
 
@@ -101,212 +62,90 @@ public static class Cracker
             {
                 try
                 {
-                    if (!NativeLibrary.TryLoad(lib, out var handle))
-                    {
-                        continue;
-                    }
+                    if (!NativeLibrary.TryLoad(lib, out var h)) continue;
 
-                    if (NativeLibrary.TryGetExport(handle, "crypt_ra", out var ptr))
+                    // Prefer crypt_ra
+                    if (NativeLibrary.TryGetExport(h, "crypt_ra", out var pRa))
                     {
-                        cryptRaFunc = Marshal.GetDelegateForFunctionPointer<CryptRaDelegate>(ptr);
-                        nativeLibHandle = handle;
+                        s_cryptRa  = Marshal.GetDelegateForFunctionPointer<CryptRaDelegate>(pRa);
+                        s_libHandle = h;
                         return;
                     }
 
-                    NativeLibrary.Free(handle);
+                    // Fallback to classic crypt
+                    if (NativeLibrary.TryGetExport(h, "crypt", out var pCrypt))
+                    {
+                        s_crypt    = Marshal.GetDelegateForFunctionPointer<CryptDelegate>(pCrypt);
+                        s_libHandle = h;
+                        return;
+                    }
+
+                    NativeLibrary.Free(h);
                 }
-                catch
-                {
-                    // no op
-                }
+                catch { /* try next */ }
             }
 
-            throw new DllNotFoundException("crypt_ra not found. Install libxcrypt.");
+            throw new DllNotFoundException("No suitable crypt function found (crypt_ra/crypt). Install libxcrypt.");
         }
     }
 
-    private static CryptRaDelegate GetCryptRa()
+    private static ThreadCryptState GetTls()
     {
-        EnsureCryptRaLoaded();
-        var f = cryptRaFunc;
-
-        if (f == null)
-        {
-            throw new InvalidOperationException("crypt_ra not bound");
-        }
-
-        return f;
+        var st = s_tls.Value;
+        if (st is null) throw new InvalidOperationException("thread-local state unavailable");
+        return st;
     }
 
-    private static ThreadCryptState GetThreadState()
-    {
-        var s = threadState.Value;
-
-        if (s == null)
-        {
-            throw new InvalidOperationException("thread-local state unavailable");
-        }
-
-        return s;
-    }
-
+    /// <summary>Returns the encoded hash of <paramref name="plaintext"/> using <paramref name="storedHash"/> as the setting.</summary>
     public static string? CryptWrap(string plaintext, string? storedHash)
     {
-        if (storedHash == null)
+        if (string.IsNullOrEmpty(storedHash)) return null;
+        EnsureLoaded();
+
+        // Preferred: crypt_ra (MT-friendly)
+        if (s_cryptRa is not null)
         {
-            return null;
+            var st = GetTls();
+            IntPtr p = s_cryptRa(plaintext, storedHash!, ref st.Opaque, ref st.Size);
+            return p == IntPtr.Zero ? null : Marshal.PtrToStringAnsi(p);
         }
 
-        var cryptRa = GetCryptRa();
-        var state = GetThreadState();
-        IntPtr resultPtr = cryptRa(plaintext, storedHash, ref state.OpaquePointer, ref state.Size);
-        if (resultPtr == IntPtr.Zero)
+        // Fallback: classic crypt (non re-entrant)
+        if (s_crypt is not null)
         {
-            return null;
-        }
-
-        return Marshal.PtrToStringAnsi(resultPtr);
-    }
-
-    public static ulong FetchWorkBlock(int blockSize)
-    {
-        long start = Interlocked.Add(ref globalStartIndex, blockSize) - blockSize;
-
-        if (start < 0)
-        {
-            return ulong.MaxValue;
-        }
-
-        return (ulong)start;
-    }
-
-    public static string IndexToPassword(ulong index, int passLen, char[] alphabet)
-    {
-        int alphabetLen = alphabet.Length;
-        var buffer = new char[passLen];
-        for (int i = passLen - 1; i >= 0; i--)
-        {
-            int digit = (int)(index % (ulong)alphabetLen);
-            buffer[i] = alphabet[digit];
-            index /= (ulong)alphabetLen;
-        }
-
-        return new string(buffer);
-    }
-
-    public static void WorkerLoop(HashVerifier verifier, int passwordLength, char[] alphabet, long total, int blockSize)
-    {
-        while (!IsStopped)
-        {
-            ulong startU = FetchWorkBlock(blockSize);
-
-            if (startU == ulong.MaxValue)
+            lock (s_cryptLock)
             {
-                break;
-            }
-
-            long start = (long)startU;
-            if (start >= total)
-            {
-                break;
-            }
-
-            long end = Math.Min(total, start + blockSize);
-            for (long j = start; j < end && !IsStopped; ++j)
-            {
-                string candidate = IndexToPassword((ulong)j, passwordLength, alphabet);
-                if (verifier.Verify(candidate))
-                {
-                    resultPassword = candidate;
-                    Interlocked.Exchange(ref globalStartIndex, total);
-                    Volatile.Write(ref stopFlag, 1);
-                    break;
-                }
+                IntPtr p = s_crypt(plaintext, storedHash!);
+                return p == IntPtr.Zero ? null : Marshal.PtrToStringAnsi(p);
             }
         }
+
+        return null;
     }
 
-    public static string? CrackMultiThread(string storedHash, int passwordLength, char[] alphabet, int numThreads,
-        int blockSize = 1)
+    /// <summary>Returns true if crypt(plaintext, storedHash) == storedHash.</summary>
+    public static bool Verify(string candidate, string storedHash)
     {
-        int a = alphabet.Length;
-        long total = 1;
-        for (int i = 0; i < passwordLength; i++)
-        {
-            total *= a;
-        }
-
-        var verifier = new HashVerifier(storedHash);
-
-        Interlocked.Exchange(ref globalStartIndex, 0);
-        Volatile.Write(ref stopFlag, 0);
-        resultPassword = null;
-
-        var tasks = new Task[numThreads];
-        for (int t = 0; t < numThreads; ++t)
-        {
-            tasks[t] = Task.Run(() => WorkerLoop(verifier, passwordLength, alphabet, total, blockSize));
-        }
-
-        Task.WaitAll(tasks);
-        return resultPassword;
+        string? produced = CryptWrap(candidate, storedHash);
+        return produced is not null && string.Equals(produced, storedHash, StringComparison.Ordinal);
     }
 
-    public static string? CrackRangeMultiThread(string storedHash, char[] alphabet, int numThreads, int blockSize)
-    {
-        for (int len = 1;; ++len)
-        {
-            var found = CrackMultiThread(storedHash, len, alphabet, numThreads, blockSize);
-            if (found != null)
-            {
-                return found;
-            }
-        }
-    }
-
+    // (Optional) keep if you still use it elsewhere
     public static string? GetHashForUser(string path, string username)
     {
-        if (string.IsNullOrWhiteSpace(path))
+        if (!System.IO.File.Exists(path)) throw new System.IO.FileNotFoundException("Shadow file not found", path);
+        foreach (var raw in System.IO.File.ReadLines(path))
         {
-            throw new ArgumentException("Shadow file path is required.", nameof(path));
+            var line = raw.Trim();
+            if (line.Length == 0 || line.StartsWith("#")) continue;
+            var fields = line.Split(':');
+            if (fields.Length < 2) continue;
+            if (!string.Equals(fields[0], username, StringComparison.Ordinal)) continue;
+
+            var hashField = fields[1];
+            if (hashField is "!" or "*" or "x" or "") return null;
+            return hashField;
         }
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            throw new ArgumentException("Username is required.", nameof(username));
-        }
-
-        if (!File.Exists(path))
-        {
-            throw new FileNotFoundException("Shadow file not found.", path);
-        }
-
-        try
-        {
-            foreach (var rawLine in File.ReadLines(path))
-            {
-                var line = rawLine.Trim();
-                if (line.Length == 0 || line.StartsWith("#"))
-                    continue;
-
-                var fields = line.Split(':');
-                if (fields.Length < 2)
-                    continue;
-
-                if (!string.Equals(fields[0], username, StringComparison.Ordinal))
-                    continue;
-
-                var hashField = fields[1];
-                if (hashField == "!" || hashField == "*" || hashField == "x" || string.IsNullOrEmpty(hashField))
-                    return null;
-
-                return hashField;
-            }
-
-            return null;
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new IOException($"Access to shadow file denied: {path}", ex);
-        }
+        return null;
     }
 }

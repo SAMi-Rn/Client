@@ -1,16 +1,15 @@
 namespace Client;
 
-public enum FsmState
+internal enum FsmState
 {
-    CHECK_ARGUMENTS,
-    BIND_CRYPT,
-    READ_SHADOW,
-    PREPARE_ALPHABET,
-    PREPARE_THREAD_COUNTS,
-    START_TIMER,
-    RUN_CRACK,
-    STOP_TIMER,
-    NEXT_THREAD_COUNT,
-    END_PROGRAM,
+    INIT,
+    PARSE_ARGS,
+    START_CALLBACK,          // start local listener for server's callback
+    REGISTER_WITH_SERVER,    // connect to server: send ClientRegister, then close
+    POLL,                    // poll callback socket(s)
+    ACCEPT_BACK,             // accept server's callback
+    READ_READY,              // read & process JSON lines
+    RUN_ASSIGN,              // crack the assigned slice (multithreaded)
+    END,
     ERROR
 }

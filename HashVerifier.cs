@@ -11,7 +11,7 @@ public sealed class HashVerifier
         _storedHash = storedHash ?? throw new ArgumentNullException(nameof(storedHash));
     }
     
-    public bool Verify(string candidatePassword)
+    public bool Verify1(string candidatePassword)
     {
         if (candidatePassword is null)
         {
@@ -27,5 +27,13 @@ public sealed class HashVerifier
         }
 
         return string.Equals(produced, _storedHash, StringComparison.Ordinal);
+    }
+    
+    public static bool Verify(string candidate, string storedHash)
+    {
+        // crypt_ra returns the encoded hash of 'candidate' using 'storedHash' as the setting.
+        // Match when it equals the storedHash.
+        string? produced = Cracker.CryptWrap(candidate, storedHash);
+        return produced is not null && string.Equals(produced, storedHash, StringComparison.Ordinal);
     }
 }

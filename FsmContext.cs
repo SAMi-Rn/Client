@@ -1,41 +1,64 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+
 namespace Client;
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-
-public sealed class FsmRow
+internal sealed class FsmContext
 {
-    public int Threads { get; init; }
-    public string Found { get; init; } = "NOTFOUND";
-    public double Seconds { get; init; }
-}
+    // argv / flags
+    public string[] Args { get; init; } = Array.Empty<string>();
+    public bool Verbose { get; init; }
 
-public sealed class FsmContext
-{
-    public string[] Args { get; set; } = Array.Empty<string>();
-    public bool Verbose { get; set; } = false;
-    public bool RunAll { get; set; } = false;
-    public int SpecificThreads { get; set; } = -1;
-    public string ShadowFile { get; set; } = "";
-    public string Username { get; set; } = "";
+    // parsed args
+    public string ServerHost { get; set; } = "127.0.0.1";
+    public int    ServerPort { get; set; }
+    public int    Threads    { get; set; } = Math.Max(1, Environment.ProcessorCount);
+
+    // identity
+    public string NodeId { get; set; } = $"{Environment.MachineName}".Replace(' ', '-');
     
-    public string? StoredHash { get; set; }
-    
-    public int BlockSize { get; set; } = 1;
+    // callback listener (server connects back here)
+    public TcpListener CallbackListener = null!;
+    public int         CallbackPort;
+    public TcpClient?  Back;                 // accepted callback connection
+    public NetworkStream? Stream;            // Back.GetStream()
+    public DateTime LastRx = DateTime.Now;   // last activity (RX) from server
+    public volatile bool StopRequested = false;
+    public string StopReason = "";
     public char[] Alphabet { get; set; } =
         ("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
          "abcdefghijklmnopqrstuvwxyz" +
          "0123456789" +
          "@#%^&*()_+-=.,:;?").ToCharArray();
     
-    public List<int> ThreadCounts { get; } = new();
-    public int ThreadIndex { get; set; } = 0;
-    public int CurrentThreads => ThreadCounts[ThreadIndex];
+    // job state
+    public AssignWork? CurrentAssign;
 
-    // Timing + results
-    public Stopwatch Timer { get; } = new();
-    public List<FsmRow> Results { get; } = new();
+    // runtime
+    public int ExitCode = 0;
+    public bool QuietTransition = false;
+    public bool QuitRequested = false;
+    
+    
+    public bool PoolAlive;
+    public int  PoolT;
+    public Thread[]? Pool;
+    public ManualResetEventSlim StartWork { get; } = new(false);
+    public CountdownEvent? JobDone;
+    public int JobVersion = 0;
 
-    public Exception? Error { get; set; }
+    public long[]? LocalTried;   // pretty logs
+    public object PoolLock { get; } = new();
+
+    // current job published to pool
+    public volatile object? CurrentJob; 
+    
+    // helpers
+    public readonly StringBuilder Rx = new();
+
+    // small helpers mirroring server
+    public void Fail(string msg) { Log.Info(msg); ExitCode = ExitCode == 0 ? 1 : ExitCode; }
 }
