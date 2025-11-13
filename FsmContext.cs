@@ -14,7 +14,7 @@ internal sealed class FsmContext
     // parsed args
     public string ServerHost { get; set; } = "127.0.0.1";
     public int ServerPort { get; set; }
-    public int Threads { get; set; } = Math.Max(1, Environment.ProcessorCount);
+    public int Threads { get; set; }
     public string NodeId { get; set; } = $"{Environment.MachineName}".Replace(' ', '-');
     
     // callback listener

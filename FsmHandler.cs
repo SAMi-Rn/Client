@@ -12,12 +12,11 @@ internal sealed class FsmHandler
     private FsmState current = FsmState.INIT;
     private readonly List<(FsmState state, Func<FsmState> handler)> table;
     private bool verbose;
-    private readonly Cracker _cracker;
+    private Cracker? _cracker;
 
     public FsmHandler(FsmContext context)
     {
         cx = context ?? throw new ArgumentNullException(nameof(context));
-        _cracker = new Cracker(cx.Alphabet, cx.Threads);
         table = new()
         {
             (FsmState.INIT, HandleInit),
@@ -88,9 +87,10 @@ internal sealed class FsmHandler
         var args = cx.Args;
         var withoutVerbose = args.Where(a => a is not "-v" and not "--verbose").ToArray();
 
-        if (withoutVerbose.Length is < 2 or > 3)
+        if (withoutVerbose.Length != 3)
         {
             PrintUsage();
+            cx.Fail("Missing or extra arguments: <serverHost> <serverPort> <threads> are required.");
             cx.ExitCode = 1;
             return FsmState.ERROR;
         }
@@ -104,27 +104,24 @@ internal sealed class FsmHandler
         }
         cx.ServerPort = port;
 
-        if (withoutVerbose.Length == 3)
+        if (!int.TryParse(withoutVerbose[2], out var threads) || threads <= 0)
         {
-            if (!int.TryParse(withoutVerbose[2], out var t) || t <= 0)
-            {
-                cx.Fail("Invalid <threads>"); 
-                return FsmState.ERROR;
-            }
-            cx.Threads = t;
+            cx.Fail($"Invalid <threads>: '{withoutVerbose[2]}' (must be >= 1)"); return FsmState.ERROR;
         }
+        cx.Threads = threads;
 
         if (cx.Verbose)
         {
             Console.WriteLine($"[args] server={cx.ServerHost}:{cx.ServerPort} threads={cx.Threads}");
         }
-
+        
+        _cracker = new Cracker(cx.Alphabet, cx.Threads);
         return FsmState.START_CALLBACK;
     }
 
     private static void PrintUsage()
     {
-        Console.WriteLine("Usage: dotnet run -- <serverHost> <serverPort> [threads] [-v|--verbose]");
+        Console.WriteLine("Usage: dotnet run -- <serverHost> <serverPort> <threads> [-v|--verbose]");
         Console.WriteLine("Example: dotnet run -- 192.168.0.100 5001 4 -v");
     }
 
@@ -320,7 +317,7 @@ internal sealed class FsmHandler
             { IsBackground = true, Name = "ctrl" };
         ctrl.Start();
 
-        var result = _cracker.RunSlice(
+        var result = _cracker!.RunSlice(
             storedHash: assignedWork.StoredHash,
             startIndex: assignedWork.StartIndex,
             count:      assignedWork.Count,
