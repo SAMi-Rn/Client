@@ -8,24 +8,21 @@ namespace Client;
 
 internal sealed class FsmContext
 {
-    // argv / flags
     public string[] Args { get; init; } = Array.Empty<string>();
     public bool Verbose { get; init; }
 
     // parsed args
     public string ServerHost { get; set; } = "127.0.0.1";
-    public int    ServerPort { get; set; }
-    public int    Threads    { get; set; } = Math.Max(1, Environment.ProcessorCount);
-
-    // identity
+    public int ServerPort { get; set; }
+    public int Threads { get; set; } = Math.Max(1, Environment.ProcessorCount);
     public string NodeId { get; set; } = $"{Environment.MachineName}".Replace(' ', '-');
     
-    // callback listener (server connects back here)
+    // callback listener
     public TcpListener CallbackListener = null!;
-    public int         CallbackPort;
-    public TcpClient?  Back;                 // accepted callback connection
-    public NetworkStream? Stream;            // Back.GetStream()
-    public DateTime LastRx = DateTime.Now;   // last activity (RX) from server
+    public int CallbackPort;
+    public TcpClient? Back;
+    public NetworkStream? Stream;
+    public DateTime LastReceived = DateTime.Now;
     public volatile bool StopRequested = false;
     public string StopReason = "";
     public char[] Alphabet { get; set; } =
@@ -39,23 +36,7 @@ internal sealed class FsmContext
 
     // runtime
     public int ExitCode = 0;
-    public bool QuietTransition = false;
     public bool QuitRequested = false;
-    
-    
-    public bool PoolAlive;
-    public int  PoolT;
-    public Thread[]? Pool;
-    public ManualResetEventSlim StartWork { get; } = new(false);
-    public CountdownEvent? JobDone;
-    public int JobVersion = 0;
-
-    public long[]? LocalTried;   // pretty logs
-    public object PoolLock { get; } = new();
-
-    // current job published to pool
-    public volatile object? CurrentJob; 
-    
     // helpers
     public readonly StringBuilder Rx = new();
 
