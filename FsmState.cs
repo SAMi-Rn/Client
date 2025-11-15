@@ -15,6 +15,6 @@ internal enum FsmState
     READ_AND_PROCESS,
     // crack the assigned slice
     CRACK,             
-    END,
+    END_PROGRAM,
     ERROR
 }

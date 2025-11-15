@@ -27,7 +27,7 @@ internal sealed class FsmHandler
             (FsmState.ACCEPT_BACK, HandleAcceptBack),
             (FsmState.READ_AND_PROCESS, HandleReadAndProcess),
             (FsmState.CRACK, HandleCrack),
-            (FsmState.END, HandleEnd),
+            (FsmState.END_PROGRAM, HandleEndProgram),
             (FsmState.ERROR, HandleError),
         };
     }
@@ -46,7 +46,7 @@ internal sealed class FsmHandler
         {
             if (cx.StopRequested)
             {
-                current = FsmState.END;
+                current = FsmState.END_PROGRAM;
                 break;
             }
 
@@ -66,13 +66,13 @@ internal sealed class FsmHandler
             }
 
             current = next;
-            if (current == FsmState.END)
+            if (current == FsmState.END_PROGRAM)
             {
                 break;
             }
         }
 
-        HandleEnd();
+        HandleEndProgram();
     }
 
     private FsmState HandleInit()
@@ -258,14 +258,14 @@ internal sealed class FsmHandler
                 cx.StopReason = stop.Reason ?? "";
                 cx.StopRequested = true; 
                 Log.Info($"[{Now()}] <- {Kinds.Stop} reason='{cx.StopReason}'");
-                return FsmState.END;
+                return FsmState.END_PROGRAM;
             } 
             return FsmState.READ_AND_PROCESS;
         }
         catch
         {
             Log.Info($"[{Now()}] Connection closed by server");
-            return FsmState.END;
+            return FsmState.END_PROGRAM;
         }
     }
 
@@ -350,7 +350,7 @@ internal sealed class FsmHandler
 
         if (cx.StopRequested)
         {
-            return FsmState.END;
+            return FsmState.END_PROGRAM;
         }
 
         lock (sendLock)
@@ -367,12 +367,12 @@ internal sealed class FsmHandler
     }
     
     
-    private FsmState HandleEnd()
+    private FsmState HandleEndProgram()
     {
         try { cx.Stream?.Close(); } catch { }
         try { cx.Back?.Close(); } catch { }
         try { cx.CallbackListener?.Stop(); } catch { }
-        return FsmState.END;
+        return FsmState.END_PROGRAM;
     }
 
     private FsmState HandleError()
@@ -383,7 +383,7 @@ internal sealed class FsmHandler
         try { cx.Back?.Close(); } catch { }
         try { cx.CallbackListener?.Stop(); } catch { }
         cx.ExitCode = cx.ExitCode == 0 ? 1 : cx.ExitCode;
-        return FsmState.END;
+        return FsmState.END_PROGRAM;
     }
 
     private static string? ReadLine(TcpClient tcp, NetworkStream stream, int timeoutMs)
