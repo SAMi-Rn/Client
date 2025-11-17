@@ -40,6 +40,10 @@ internal sealed class FsmContext
     // helpers
     public readonly StringBuilder Rx = new();
 
-    // small helpers mirroring server
-    public void Fail(string msg) { Log.Info(msg); ExitCode = ExitCode == 0 ? 1 : ExitCode; }
+    public string? ErrorMessage { get; private set; }
+    public void Fail(string message)
+    {
+        ErrorMessage = message;
+        if (Verbose) Console.Error.WriteLine($"[error] {message}");
+    }
 }

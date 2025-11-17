@@ -378,7 +378,8 @@ internal sealed class FsmHandler
     private FsmState HandleError()
     {
         Console.WriteLine();
-        Console.WriteLine("===== ERROR (client) =====");
+        Console.WriteLine("===== ERROR =====");
+        Console.WriteLine(cx.ErrorMessage ?? "Unknown error");
         try { cx.Stream?.Close(); } catch { }
         try { cx.Back?.Close(); } catch { }
         try { cx.CallbackListener?.Stop(); } catch { }

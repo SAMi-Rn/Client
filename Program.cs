@@ -9,6 +9,13 @@ class Program
 
         var ctx = new FsmContext { Args = cleaned, Verbose = verbose };
         var fsm = new FsmHandler(ctx);
+        // Handle Ctrl+C
+        Console.CancelKeyPress += (s, e) =>
+        {
+            e.Cancel = true;
+            ctx.StopRequested = true;
+        };
+        
         var exit = fsm.Run();
         Environment.Exit(exit);
     }
