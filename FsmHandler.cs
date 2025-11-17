@@ -218,6 +218,7 @@ internal sealed class FsmHandler
 
     private FsmState HandleReadAndProcess()
     {
+        if (cx.StopRequested) return FsmState.END_PROGRAM;  
         if (cx.Back == null || cx.Stream == null)
         {
             return FsmState.POLL;

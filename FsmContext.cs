@@ -43,7 +43,7 @@ internal sealed class FsmContext
     public void RequestStop(string? reason = null)
     {
         if (!string.IsNullOrEmpty(reason)) StopReason = reason;
-        System.Threading.Volatile.Write(ref StopRequested, true);
+        StopRequested = true; 
     }
     
     public string? ErrorMessage { get; private set; }
