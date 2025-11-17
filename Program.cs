@@ -10,10 +10,10 @@ class Program
         var ctx = new FsmContext { Args = cleaned, Verbose = verbose };
         var fsm = new FsmHandler(ctx);
         // Handle Ctrl+C
-        Console.CancelKeyPress += (s, e) =>
+        Console.CancelKeyPress += (_, e) =>
         {
-            e.Cancel = true;
-            ctx.StopRequested = true;
+            e.Cancel = true;                 // prevent immediate kill
+            ctx.RequestStop("CTRL+C");
         };
         
         var exit = fsm.Run();

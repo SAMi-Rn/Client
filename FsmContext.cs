@@ -39,7 +39,13 @@ internal sealed class FsmContext
     public bool QuitRequested = false;
     // helpers
     public readonly StringBuilder Rx = new();
-
+    
+    public void RequestStop(string? reason = null)
+    {
+        if (!string.IsNullOrEmpty(reason)) StopReason = reason;
+        System.Threading.Volatile.Write(ref StopRequested, true);
+    }
+    
     public string? ErrorMessage { get; private set; }
     public void Fail(string message)
     {
