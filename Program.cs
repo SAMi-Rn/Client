@@ -12,7 +12,7 @@ class Program
         // Handle Ctrl+C
         Console.CancelKeyPress += (_, e) =>
         {
-            e.Cancel = true;                 // prevent immediate kill
+            e.Cancel = true;
             ctx.RequestStop("CTRL+C");
         };
         

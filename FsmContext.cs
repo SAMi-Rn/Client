@@ -50,6 +50,5 @@ internal sealed class FsmContext
     public void Fail(string message)
     {
         ErrorMessage = message;
-        if (Verbose) Console.Error.WriteLine($"[error] {message}");
     }
 }
