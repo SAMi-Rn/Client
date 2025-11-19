@@ -12,7 +12,7 @@ internal sealed class FsmContext
     public bool Verbose { get; init; }
 
     // parsed args
-    public string ServerHost { get; set; } = "127.0.0.1";
+    public string ServerIp { get; set; } = "127.0.0.1";
     public int ServerPort { get; set; }
     public int Threads { get; set; }
     public string NodeId { get; set; } = $"{Environment.MachineName}".Replace(' ', '-');

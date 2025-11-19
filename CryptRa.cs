@@ -99,7 +99,8 @@ public static class CryptRa
     private static ThreadCryptState GetTls()
     {
         var st = s_tls.Value;
-        if (st is null) throw new InvalidOperationException("thread-local state unavailable");
+        if (st is null) throw new InvalidOperationException("thread-local state un" +
+                                                            "available");
         return st;
     }
 

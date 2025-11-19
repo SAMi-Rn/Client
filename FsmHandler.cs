@@ -83,19 +83,19 @@ internal sealed class FsmHandler
 
     private FsmState HandleParseArgs()
     {
-        // Expected: <serverHost> <serverPort> [threads]
+        // Expected: <serverIp> <serverPort> [threads]
         var args = cx.Args;
         var withoutVerbose = args.Where(a => a is not "-v" and not "--verbose").ToArray();
 
         if (withoutVerbose.Length != 3)
         {
             PrintUsage();
-            cx.Fail("Missing or extra arguments: <serverHost> <serverPort> <threads> are required.");
+            cx.Fail("Missing or extra arguments: <serverIp> <serverPort> <threads> are required.");
             cx.ExitCode = 1;
             return FsmState.ERROR;
         }
 
-        cx.ServerHost = withoutVerbose[0];
+        cx.ServerIp = withoutVerbose[0];
 
         if (!int.TryParse(withoutVerbose[1], out var port) || port < 1 || port > 65535)
         {
@@ -112,7 +112,7 @@ internal sealed class FsmHandler
 
         if (cx.Verbose)
         {
-            Console.WriteLine($"[args] server={cx.ServerHost}:{cx.ServerPort} threads={cx.Threads}");
+            Console.WriteLine($"[args] server={cx.ServerIp}:{cx.ServerPort} threads={cx.Threads}");
         }
         
         _cracker = new Cracker(cx.Alphabet, cx.Threads);
@@ -121,7 +121,7 @@ internal sealed class FsmHandler
 
     private static void PrintUsage()
     {
-        Console.WriteLine("Usage: dotnet run -- <serverHost> <serverPort> <threads> [-v|--verbose]");
+        Console.WriteLine("Usage: dotnet run -- <serverIp> <serverPort> <threads> [-v|--verbose]");
         Console.WriteLine("Example: dotnet run -- 192.168.0.100 5001 4 -v");
     }
 
@@ -147,13 +147,13 @@ internal sealed class FsmHandler
         try
         {
             using var tcp = new TcpClient();
-            tcp.Connect(cx.ServerHost, cx.ServerPort);
+            tcp.Connect(cx.ServerIp, cx.ServerPort);
             using var stream = tcp.GetStream();
 
             var register = new ClientRegister(cx.NodeId, GetLocalAddress(), cx.CallbackPort, cx.Threads);
             Json.SendLine(stream, new { type = Kinds.ClientRegister, body = register });
 
-            Log.Info($"[{Now()}] Sent {Kinds.ClientRegister} to {cx.ServerHost}:{cx.ServerPort} " +
+            Log.Info($"[{Now()}] Sent {Kinds.ClientRegister} to {cx.ServerIp}:{cx.ServerPort} " +
                      $"callback={register.ListenHost}:{register.ListenPort} threads={register.Threads}");
 
             return FsmState.POLL;
@@ -322,7 +322,7 @@ internal sealed class FsmHandler
             storedHash: assignedWork.StoredHash,
             startIndex: assignedWork.StartIndex,
             count:      assignedWork.Count,
-            checkpointEvery: Math.Max(1, assignedWork.CheckpointEvery),
+            checkpoint: Math.Max(1, assignedWork.Checkpoint),
 
             onWorkerStart: (slot, tid) => Log.Info($"[W{slot}] start tid={tid}"),
 

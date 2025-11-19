@@ -35,7 +35,7 @@ public sealed record AssignWork
     string StoredHash,
     long   StartIndex,
     long   Count,
-    int    CheckpointEvery
+    int    Checkpoint
 );
 
 // Client -> Server

@@ -46,7 +46,7 @@ public sealed class Cracker
         string storedHash,
         long startIndex,
         long count,
-        int checkpointEvery,
+        int checkpoint,
         // log "[Wi] start tid=*"
         Action<int,int> onWorkerStart,  
         // tried + per-worker
@@ -54,7 +54,7 @@ public sealed class Cracker
         Func<bool> isStopRequested)
     {
         // create job state
-        var job = new JobState(_alphabet, storedHash, startIndex, count, checkpointEvery, _threads, onCheckpoint, isStopRequested);
+        var job = new JobState(_alphabet, storedHash, startIndex, count, checkpoint, _threads, onCheckpoint, isStopRequested);
         
         _jobDone = new CountdownEvent(_threads);
         _job     = job;
@@ -84,7 +84,7 @@ public sealed class Cracker
         public readonly char[] Alphabet;
         public readonly string StoredHash;
         public readonly long Start, Count;
-        public readonly int  CheckpointEvery;
+        public readonly int  Checkpoint;
         public readonly int  Threads;
         
         // 0/1
@@ -116,7 +116,7 @@ public sealed class Cracker
             StoredHash = storedHash;
             Start = start; 
             Count = count; 
-            CheckpointEvery = Math.Max(1, checkpoint);
+            Checkpoint = Math.Max(1, checkpoint);
             Threads = Math.Max(1, threads);
             DoneMap = new int[(int)count];
             PerWorkerTried = new long[Threads];
@@ -203,11 +203,11 @@ public sealed class Cracker
             }
 
             var list = new List<long>();
-            long next = job.LastCheckpoint + job.CheckpointEvery;
+            long next = job.LastCheckpoint + job.Checkpoint;
             while (next <= job.DonePrefix)
             {
                 list.Add(next);
-                next += job.CheckpointEvery;
+                next += job.Checkpoint;
             }
 
             if (job.DonePrefix == job.Count && (list.Count == 0 || list[^1] != job.Count))
