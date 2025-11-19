@@ -293,6 +293,8 @@ internal sealed class FsmHandler
 
                         if (tcp.Client.Poll(0, SelectMode.SelectRead) && tcp.Available == 0)
                         {
+                            Log.Info($"[{Now()}] server closed connection");
+                            cx.StopRequested = true;
                             break;
                         }
 
@@ -330,18 +332,49 @@ internal sealed class FsmHandler
             {
                 lock (sendLock)
                 {
-                    Json.SendLine(cx.Stream!, new {
-                        type = Kinds.Checkpoint,
-                        body = new Checkpoint(assignedWork.JobId, tried, assignedWork.StartIndex + tried - 1, DateTimeOffset.Now)
-                    });
-                    Log.In($"[{Now()}] {Kinds.Checkpoint} job={assignedWork.JobId} tried={tried} lastIndex={assignedWork.StartIndex + tried - 1} ts={DateTimeOffset.Now:O}");
+                    if (cx.StopRequested)
+                    {
+                        return;
+                    }
 
-                    var stringBuilder = new StringBuilder("[local] per-worker tried:");
-                    for (int i = 0; i < per.Length; i++)
-                    { if (i > 0) stringBuilder.Append(' '); stringBuilder.Append($"W{i}:{per[i]}"); }
-                    Log.Info(stringBuilder.ToString());
+                    try
+                    {
+                        Json.SendLine(cx.Stream!, new
+                        {
+                            type = Kinds.Checkpoint,
+                            body = new Checkpoint(
+                                assignedWork.JobId,
+                                tried,
+                                assignedWork.StartIndex + tried - 1,
+                                DateTimeOffset.Now)
+                        });
+
+                        var sb = new StringBuilder("[local] per-worker tried:");
+                        for (int i = 0; i < per.Length; i++)
+                        {
+                            if (i > 0) sb.Append(' ');
+                            sb.Append($"W{i}:{per[i]}");
+                        }
+                        Log.Info(sb.ToString());
+                    }
+                    catch (IOException ex)
+                    {
+                        Log.Info($"[{Now()}] checkpoint send failed: {ex.Message}");
+                        cx.StopRequested = true;
+                    }
+                    catch (ObjectDisposedException ex)
+                    {
+                        Log.Info($"[{Now()}] checkpoint send on closed stream: {ex.Message}");
+                        cx.StopRequested = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Info($"[{Now()}] unexpected error sending checkpoint: {ex.Message}");
+                        cx.StopRequested = true;
+                    }
                 }
             },
+
             isStopRequested: () => cx.StopRequested
         );
 
@@ -356,10 +389,18 @@ internal sealed class FsmHandler
 
         lock (sendLock)
         {
-            Json.SendLine(cx.Stream!, new {
-                type = Kinds.WorkResult,
-                body = new WorkResult(assignedWork.JobId, result.Found, result.Password, result.Tried, result.DurationMs)
-            });
+            try
+            {
+                Json.SendLine(cx.Stream!, new {
+                    type = Kinds.WorkResult,
+                    body = new WorkResult(assignedWork.JobId, result.Found, result.Password, result.Tried, result.DurationMs)
+                });
+            }
+            catch (Exception ex) when (ex is IOException || ex is ObjectDisposedException)
+            {
+                Log.Info($"[{Now()}] failed to send WORK_RESULT: {ex.Message}");
+                return FsmState.END_PROGRAM;
+            }
         }
         Log.In($"[{Now()}] [{cx.NodeId}] {Kinds.WorkResult} job={assignedWork.JobId} found={result.Found} tried={result.Tried} ms={result.DurationMs}");
 
